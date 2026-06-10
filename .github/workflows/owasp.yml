@@ -15,6 +15,8 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+permissions: {}
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -27,7 +29,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: master
+          persist-credentials: false
 
       # Runs a single command using the runners shell
       - name: Pull and start docker
@@ -38,7 +40,7 @@ jobs:
         uses: zaproxy/action-full-scan@v0.13.0
         with:
           # GitHub Token to create issues in the repository
-          #token: # optional, default is ${{ github.token }}
+          #token: # optional, default is github.token
           # Target URL
           target: http://localhost:8080
           # Relative path of the ZAP configuration file
