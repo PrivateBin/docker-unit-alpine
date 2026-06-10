@@ -1,17 +1,18 @@
-# PrivateBin on Nginx Unit & Alpine
+# PrivateBin on FreeUnit & Alpine
 
 **PrivateBin** is a minimalist, open source online [pastebin](https://en.wikipedia.org/wiki/Pastebin) where the server has zero knowledge of pasted data. Data is encrypted and decrypted in the browser using 256bit AES in [Galois Counter mode](https://en.wikipedia.org/wiki/Galois/Counter_Mode).
 
-This repository contains the Dockerfile and resources needed to create a Docker image with a pre-installed PrivateBin instance in a secure default configuration. The images are based on the docker hub Alpine image, extended with the GD module required to generate discussion avatars and the Nginx Unit application server to serve static JavaScript libraries, CSS & the logos as well as dynamic PHP rendered HTML. All logs of Nginx Unit (access & errors) are forwarded to docker logs.
+This repository contains the Dockerfile and resources needed to create a Docker image with a pre-installed PrivateBin instance in a secure default configuration. The images are based on the docker hub Alpine image, extended with the GD module required to generate discussion avatars and the [FreeUnit, the community LTS fork of the Unit application server](https://freeunit.org/) to serve static JavaScript libraries, CSS & the logos as well as dynamic PHP rendered HTML. All logs of FreeUnit (access & errors) are forwarded to docker logs.
+
+> FreeUnit is a lightweight and versatile application runtime that provides the essential components for your web application as a single open-source server: running application code […], serving static assets, handling TLS and request routing.
 
 ## Limitations
 
 Compared to the [Nginx web server, php-fpm & Alpine images](https://github.com/PrivateBin/docker-nginx-fpm-alpine), these are smaller, but lack the following features:
 
 - no automatic gzip compression of static text files
-- nginx, the webserver and [nginx unit](https://unit.nginx.org/) are not the same thing. "Unit is a lightweight and versatile application runtime [and] was created by nginx team members from scratch [...]."
 
-You can use a front end webserver that addresses these limitations or use the other images that use a full nginx webserver, offering these functions out of the box.
+You can use a front end webserver that addresses this limitation or use the other images that use a full nginx webserver, offering that function out of the box.
 
 ## Image variants
 
@@ -51,8 +52,8 @@ The parameters in detail:
 
 - `-v $PWD/privatebin-data:/srv/data` - replace `$PWD/privatebin-data` with the path to the folder on your system, where the pastes and other service data should be persisted. This guarantees that your pastes aren't lost after you stop and restart the image or when you replace it. May be skipped if you just want to test the image or use database or Google Cloud Storage backend.
 - `--tmpfs /tmp:nodev,noexec,mode=1777 --tmpfs /run:nodev,exec,mode=1777` - attaches temporary, in-memory file systems for use by the service manager and small temporary files. These should get removed when restarting the service. You can skip these, but may have to clean them up manually, for example when the image upgrades PHP.
-- `-p 8080:8080` - The Nginx webserver inside the container listens on port 8080, this parameter exposes it on your system on port 8080. Be sure to use a reverse proxy for HTTPS termination in front of it in production environments.
-- `--read-only` - This image supports running in read-only mode. Using this reduces the attack surface slightly, since an exploit in one of the images services can't overwrite arbitrary files in the container. Only /tmp, /run, /var/lib/nginx/tmp & /srv/data may be written into.
+- `-p 8080:8080` - The webserver inside the container listens on port 8080, this parameter exposes it on your system on port 8080. Be sure to use a reverse proxy for HTTPS termination in front of it in production environments.
+- `--read-only` - This image supports running in read-only mode. Using this reduces the attack surface slightly, since an exploit in the images service can't overwrite arbitrary files in the container. Only /tmp, /run, /var/lib/unit & /srv/data may be written into.
 - `-d` - launches the container in the background. You can use `docker ps` and `docker logs` to check if the container is alive and well.
 - `--restart="always"` - restart the container if it crashes, mainly useful for production setups
 
@@ -116,9 +117,9 @@ The image supports the following two environment variables to adjust the timezon
 
 Note: The application internally handles expiration of pastes based on a UNIX timestamp that is calculated based on the timezone set during its creation. Changing the PHP_TZ will affect this and leads to earlier (if the timezone is increased) or later (if it is decreased) expiration than expected.
 
-### Adjusting Nginx Unit or PHP settings
+### Adjusting FreeUnit or PHP settings
 
-You can attach your own `php.ini` to the folder `/etc/php/conf.d/`. You can [dynamically change the Nginx Unit configuration at runtime](https://unit.nginx.org/controlapi/) via it's Unix socket at `/run/control.unit.sock` - if you want to persist the Unit configuration changes, you need to attach a persistent volume to `/var/lib/unit`. This, for example, would let you adjust the maximum size that these two services accept for file uploads, if you need more than the default 10 MiB.
+You can attach your own `php.ini` to the folder `/etc/php/conf.d/`. You can [dynamically change the FreeUnit configuration at runtime](https://docs.freeunit.org/controlapi/) via it's Unix socket at `/run/control.unit.sock` - if you want to persist the Unit configuration changes, you need to attach a persistent volume to `/var/lib/unit`. This, for example, would let you adjust the maximum size that these two components accept for file uploads, if you need more than the default 10 MiB.
 
 ### Kubernetes deployment
 
@@ -246,8 +247,8 @@ $ docker build -t privatebin/unit-alpine .
 
 ### Behind the scenes
 
-Nginx Unit serves static files and caches them, too. Requests to the index.php (which is the only PHP file exposed in the document root at /var/www) are also processed by it using PHP as a SAPI module. All other PHP files and the data are stored under /srv.
+FreeUnit serves static files and caches them, too. Requests to the index.php (which is the only PHP file exposed in the document root at /var/www) are also processed by it using PHP as a SAPI module. All other PHP files and the data are stored under /srv.
 
-The Nginx setup supports only HTTP, so make sure that you run a reverse proxy in front of this for HTTPS offloading and reducing the attack surface on your TLS stack. The Nginx in this image is set up to deflate/gzip text content.
+This setup supports only HTTP, so make sure that you run a reverse proxy in front of this for HTTPS offloading and reducing the attack surface on your TLS stack.
 
 During the build of the image, the PrivateBin release archive is downloaded from Github. All the downloaded Alpine packages and the PrivateBin archive are validated using cryptographic signatures to ensure they have not been tempered with, before deploying them in the image.

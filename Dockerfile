@@ -38,7 +38,7 @@ RUN \
     fi \
 # Install dependencies
     && apk upgrade --no-cache \
-    && apk add --no-cache gnupg git php85 php85-gd tzdata unit-php85 \
+    && apk add --no-cache gnupg git php85 php85-gd tzdata freeunit-php85 \
         ${ALPINE_PACKAGES} ${ALPINE_COMPOSER_PACKAGES} \
 # Stabilize php config location
     && mv /etc/php85 /etc/php \
